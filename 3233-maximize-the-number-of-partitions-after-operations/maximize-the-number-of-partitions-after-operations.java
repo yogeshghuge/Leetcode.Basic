@@ -1,38 +1,40 @@
 class Solution {
-  public int maxPartitionsAfterOperations(String s, int k) {
-    Map<Long, Integer> mem = new HashMap<>();
-    return maxPartitionsAfterOperations(s, 0, true, 0, k, mem) + 1;
-  }
-
-  // Returns the maximum number of partitions of s[i..n), where `canChange` is
-  // true if we can still change a letter, and `mask` is the bitmask of the
-  // letters we've seen.
-  private int maxPartitionsAfterOperations(final String s, int i, boolean canChange, int mask,
-                                           int k, Map<Long, Integer> mem) {
-    if (i == s.length())
-      return 0;
-
-    Long key = (long) i << 27 | (canChange ? 1 : 0) << 26 | mask;
-    if (mem.containsKey(key))
-      return mem.get(key);
-
-    // Initialize the result based on the current letter.
-    int res = getRes(s, i, canChange, mask, 1 << (s.charAt(i) - 'a'), k, mem);
-
-    // If allowed, explore the option to change the current letter.
-    if (canChange)
-      for (int j = 0; j < 26; ++j)
-        res = Math.max(res, getRes(s, i, false, mask, 1 << j, k, mem));
-
-    mem.put(key, res);
-    return res;
-  }
-
-  private int getRes(final String s, int i, boolean nextCanChange, int mask, int newBit, int k,
-                     Map<Long, Integer> mem) {
-    final int newMask = mask | newBit;
-    if (Integer.bitCount(newMask) > k) // fresh start
-      return 1 + maxPartitionsAfterOperations(s, i + 1, nextCanChange, newBit, k, mem);
-    return maxPartitionsAfterOperations(s, i + 1, nextCanChange, newMask, k, mem);
-  }
+    public int maxPartitionsAfterOperations(String S, int k) {
+        if(k == 26) return 1;
+        char[] s = S.toCharArray();
+        int n = s.length;
+        int[] left1 = new int[n], left2 = new int[n];
+        int[] partitions = new int[n];
+        int mask1 = 0, mask2 = 0, count = 1;
+        for(int i = 0; i < n; i++) {
+            int filter = 1 << (s[i] - 'a');
+            mask2 |= mask1 & filter;
+            mask1 |= filter;
+            if(Integer.bitCount(mask1) > k) {
+                mask1 = filter;
+                mask2 = 0;
+                count++;
+            }
+            left1[i] = mask1;
+            left2[i] = mask2;
+            partitions[i] = count;
+        }
+        int ans = count;
+        mask1 = mask2 = count = 0;
+        for(int i = n - 1; i >= 0; i--) {
+            int filter = 1 << (s[i] - 'a');
+            mask2 |= mask1 & filter;
+            mask1 |= filter;
+            if(Integer.bitCount(mask1) > k) {
+                mask1 = filter;
+                mask2 = 0;
+                count++;
+            }
+            if(Integer.bitCount(mask1) == k) {
+                if((filter & mask2) != 0 && (filter & left2[i]) != 0 && Integer.bitCount(left1[i]) == k && (left1[i] | mask1) != (1 << 26) - 1) ans = Math.max(ans, count + partitions[i] + 2);
+                else if(mask2 != 0) ans = Math.max(ans, count + partitions[i] + 1);
+            }
+        }
+        return ans;
+    }
 }
